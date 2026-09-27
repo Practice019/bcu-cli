@@ -66,11 +66,31 @@ Standard-library modules used (`ctypes`, `json`, `subprocess`, `winreg`, `xml`,
 
 ## Test fixtures
 
-`src/cli_anything/bcu/tests/fixtures/` contains output captured from a real
-`BCU-console.exe` run on the author's machine: `list_591_apps.json`,
-`list_plain_utf16.txt`, `dryrun_1match_stderr.txt`, `valid_list.bcul`.
+`src/cli_anything/bcu/tests/fixtures/` holds four files, all **synthetic**:
 
-These contain **application names and install paths** from that machine. They are
-kept because the parser must be tested against real output rather than invented
-samples. No credentials, licence keys or personal files are included; if you fork
-this project, consider regenerating them on your own machine.
+| File | Contents |
+|---|---|
+| `list_591_apps.json` | 591 generated applications with **invented** names, publishers and paths |
+| `list_plain_utf16.txt` | the console table, encoded UTF-16LE as BCU emits it without `/F` |
+| `dryrun_1match_stderr.txt` | a dry-run log, with a synthetic matched name |
+| `valid_list.bcul` | a generated uninstall list |
+
+They were originally captured from a real machine. **They no longer are** — the
+capture leaked a real application inventory (names, versions, publishers, install
+paths, a username), which does not belong in a public repository, so the
+inventory was replaced with generated data.
+
+The shapes that the parser is actually tested against are preserved deliberately,
+because an invented sample that is *too clean* would not test anything:
+
+- all 28 fields, with a comparable null/non-null distribution
+- `EstimatedSizeKb` as an Int64, including one near the int64 maximum
+- names containing a comma, an ampersand, double quotes and apostrophes, plus CJK
+- install locations with and without a trailing separator, on several roots, and
+  entries with no location at all
+- entries with no `UninstallString`, and entries where `QuietUninstallPossible`
+  is true while `QuietUninstallString` is absent — the shape that caught 60 of
+  591 entries in the original capture
+- `IsOrphaned` entries, i.e. the portable-software shape
+
+No credentials, licence keys or personal files are included.

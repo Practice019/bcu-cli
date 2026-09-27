@@ -39,7 +39,7 @@ name the same install location. Examples from one machine:
 
 | Directory | Entries | Effect |
 |---|---:|---|
-| `D:\apps\AcmeAnalytics` | 2 (`AcmeAnalytics`, `AcmeAnalytics 2026.01`) | 88 GB reported for 44 GB of disk |
+| `C:\Program Files\AcmeAnalytics` | 2 (`AcmeAnalytics`, `AcmeAnalytics 2026.01`) | 88 GB reported for 44 GB of disk |
 | `C:\Program Files\Microsoft Office` | 2 (`Office`, `OneNote`) | 8.8 GB reported for 4.4 GB |
 | `…\Windows Kits\10\Catalogs` | **26** | 219 MB reported across 26 SDK sub-packages |
 

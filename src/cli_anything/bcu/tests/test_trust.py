@@ -50,14 +50,16 @@ class TestDuplicateLocations:
     def test_finds_two_entries_sharing_a_directory(self):
         """The AcmeAnalytics case: 88 GB reported for a 44 GB directory."""
         items = [
-            app(display_name="AcmeAnalytics", install_location=r"D:\apps\AcmeAnalytics",
+            app(display_name="AcmeAnalytics", install_location=r"C:\Program Files\AcmeAnalytics",
                 estimated_size_kb=44 * 1024 * 1024),
-            app(display_name="AcmeAnalytics 2026.01", install_location=r"D:\apps\AcmeAnalytics",
+            app(display_name="AcmeAnalytics 2026.01", install_location=r"C:\Program Files\AcmeAnalytics",
                 estimated_size_kb=44 * 1024 * 1024),
         ]
         dupes = trust.duplicate_locations(items)
         assert len(dupes) == 1
-        assert set(dupes[r"d:\software\AcmeAnalytics"]) == {"AcmeAnalytics", "AcmeAnalytics 2026.01"}
+        assert set(dupes[r"c:\program files\acmeanalytics"]) == {
+            "AcmeAnalytics", "AcmeAnalytics 2026.01"
+        }
 
     def test_trailing_separator_and_case_are_normalised(self):
         items = [

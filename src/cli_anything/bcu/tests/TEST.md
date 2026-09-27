@@ -31,7 +31,7 @@ Two more that shape safety:
 
 ## 1.1 Unit tests `tests/test_core.py` (synthetic + real fixtures, **no BCU needed**)
 
-Real fixtures captured from the probe live in `tests/fixtures/`:
+Synthetic fixtures live in `tests/fixtures/` (regenerated — the original capture leaked a real application inventory, so it was replaced with generated data of the same shape):
 `list_591_apps.json` (746 KB), `dryrun_1match_stderr.txt`, `dryrun_nomatch_stderr.txt`,
 `list_plain_utf16.txt`, `valid_list.bcul`.
 
@@ -215,7 +215,7 @@ ok   uninstall SomeApp --quiet --junk VeryGood
    guards against the refusal becoming a wall.
 
 **Impact on this machine: none.** BCU exited 13 (an unexpected error) without
-removing anything; `D:\apps\AcmeArchiver` and its registry entry were verified intact
+removing anything; `C:\Program Files\AcmeArchiver` and its registry entry were verified intact
 afterwards. The bug was real regardless — intending to remove AcmeArchiver without an
 explicit confirmation is wrong whether or not BCU happened to fail.
 

@@ -143,7 +143,7 @@ class TestParseListJson:
         """B3: the captured production scan must parse completely."""
         assert len(real_apps) == 591
         names = {a.display_name for a in real_apps}
-        assert any("AcmeArchiver" in n for n in names)
+        assert any("Acme Suite" in n for n in names)
 
     def test_real_fixture_top_level_is_array(self):
         data = json.loads(read_fixture("list_591_apps.json"))
@@ -221,7 +221,7 @@ class TestParseDryRunStderr:
         result = parse.parse_dry_run_stderr(read_fixture("dryrun_1match_stderr.txt"))
         assert result.found == 591
         assert result.matched_count == 1
-        assert result.matched_names == ["Acme Archiver 4.10 (x64)"]
+        assert result.matched_names == ["Acme Suite"]
         assert result.finished == 1
         assert result.failed == 0
         assert result.was_dry_run is True
@@ -485,7 +485,7 @@ class TestSelectApps:
         assert len(result.matched) == 1
 
     def test_glob_pattern(self, apps):
-        result = select.select_apps(apps, "*Zip*", glob=True)
+        result = select.select_apps(apps, "*Archiver*", glob=True)
         assert [a.display_name for a in result.matched] == ["Acme Archiver 4.10 (x64)"]
 
     def test_selection_by_registry_key(self, apps):
@@ -631,7 +631,7 @@ class TestReport:
     def test_table_is_aligned(self, apps):
         text = report.render(apps[:2], fmt="table")
         assert "DISPLAY_NAME" in text.upper()
-        assert "AcmeArchiver" in text
+        assert "Acme Archiver" in text
 
     def test_markdown_has_pipes(self, apps):
         text = report.render(apps[:2], fmt="markdown")
