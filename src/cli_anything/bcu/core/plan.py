@@ -115,11 +115,18 @@ def build_plan(
         names = ", ".join(app.display_name for app in selection.matched if app.is_protected)
         return _refuse(selection, resolved_mode,
                        f"refusing to uninstall protected system component(s): {names}")
-    if unattended and resolved_mode == MODE_APPLY and not confirmed:
+    # An apply run is irreversible, so it ALWAYS requires an explicit
+    # acknowledgement -- not only the unattended variant. This was a real defect:
+    # the README promised the rule while the code only enforced it for /U, so
+    # `uninstall X --apply` without --confirm ran a genuine uninstall. A test
+    # caught it by attempting exactly that (BCU happened to fail with exit 13 and
+    # nothing was removed, but the intent was wrong).
+    if resolved_mode == MODE_APPLY and not confirmed:
         return _refuse(
             selection, resolved_mode,
-            "unattended (/U) uninstall is irreversible and requires --confirm; "
-            "run without --unattended first to preview",
+            "applying an uninstall is irreversible and requires --confirm.\n"
+            "Run it without --apply first to see a dry run of exactly what "
+            "would be removed, then re-run with --apply --confirm.",
         )
 
     targets = [app for app in selection.matched if app.is_uninstallable]

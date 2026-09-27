@@ -81,8 +81,8 @@ Real fixtures captured from the probe live in `tests/fixtures/`:
 
 | Suite | Command | Result | Needs admin | Needs BCU |
 |---|---|---|---|---|
-| Unit + CLI bindings | `pytest test_core.py test_cli_bindings.py` | **147 passed in 0.70s** | no | no |
-| End-to-end | `pytest test_full_e2e.py` (elevated) | **20 passed, 2 failed** — both caused by one wrapper bug, fixed in §2.5 | **yes** | **yes** |
+| Unit + CLI bindings | `pytest test_core.py test_cli_bindings.py` | **149 passed in 0.77s** | no | no |
+| End-to-end | `pytest test_full_e2e.py` (elevated) | **22 passed, 1 skipped, 0 failed** (164.89s) | **yes** | **yes** |
 
 The unit suite runs in **under a second** and needs neither administrator rights
 nor BCU installed — that is what makes it usable as a CI gate.
@@ -197,6 +197,34 @@ ok   uninstall SomeApp --quiet --junk VeryGood
 | 2 | UTF-16 detection failed for CJK output: the tell was "byte 1 is NUL", true for BCU's ASCII banner but not when the first char is CJK (`闲` = 0x95F2). | unit test `test_cjk_survives_utf16` | detect by **NUL density** over the first 512 bytes |
 | 3 | `--apply` was unusable (see §2.5). | **E2E only** | explicit parameter binding + binding regression suite |
 | 4 | A pure-CJK UTF-16 stream with no ASCII prefix is genuinely ambiguous. | reflection on #2 | documented as a limitation, with an explicit test |
+| 5 | **`--apply` without `--confirm` ran a real uninstall.** The guard only fired for `/U`, so the documented contract was not enforced. A test attempting exactly that combination performed a genuine uninstall attempt. | **E2E** — and only because the test *did* the dangerous thing rather than mocking it | the guard now fires for **every** apply run; a refused plan carries an empty `argv`, so BCU cannot be invoked at all |
+
+
+
+**Defect 5 deserves its own note, because two separate failures let it through:**
+
+1. **The unit test that appeared to cover it did not.**
+   `test_apply_mode_without_confirm_is_refused` passed `unattended=True`, exercising
+   a *different* branch; nothing tested the bare `uninstall X --apply` case. Its
+   sibling `test_apply_mode_requires_explicit_mode` went further and asserted the
+   dangerous behaviour was *correct*.
+2. **The E2E assertion was too lenient.** It accepted "any non-zero exit", so when
+   BCU returned 13 the result looked pass-shaped. It now asserts three things: the
+   run is refused, the message names `--confirm`, and `argv` is empty so BCU was
+   never invoked. A positive control (`--apply --confirm` must get past the gate)
+   guards against the refusal becoming a wall.
+
+**Impact on this machine: none.** BCU exited 13 (an unexpected error) without
+removing anything; `D:\apps\AcmeArchiver` and its registry entry were verified intact
+afterwards. The bug was real regardless — intending to remove AcmeArchiver without an
+explicit confirmation is wrong whether or not BCU happened to fail.
+
+Verification of the fix, without needing elevation:
+
+```text
+scenario A: --apply            refused=True  will_run=False  argv=[]
+scenario B: --apply --confirm  refused=False argv=['uninstall', 'x.bcul']  destructive=True
+```
 
 Three of my own test expectations were also wrong and were corrected rather than
 worked around: XML element text does not need `"` escaped (only attributes do);

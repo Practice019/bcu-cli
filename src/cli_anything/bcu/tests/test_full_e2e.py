@@ -361,21 +361,62 @@ class TestCLISubprocess:
         payload = json.loads(result.stdout)
         assert payload["type"] in ("FileNotFoundError", "BCUExecutionError")
 
-    def test_uninstall_refuses_apply_without_confirm(self, env, tmp_path, scan):
-        """Safety contract, exercised through the real CLI."""
+    def test_apply_without_confirm_is_refused_and_runs_nothing(self, env, tmp_path, scan):
+        """The safety contract, asserted strictly.
+
+        History: this test originally accepted "any non-zero exit". That was too
+        weak, and it hid a real defect -- `--apply` without `--confirm` actually
+        executed an uninstall (BCU failed with exit 13 and nothing was removed,
+        but the intent was wrong). The assertions below are deliberately harsh:
+
+          * the wrapper must REFUSE before invoking BCU at all,
+          * the error must say so,
+          * --apply --confirm must get past the refusal (proving the gate is a
+            gate, not a wall).
+        """
         idx = index_mod.Index.from_apps(scan["apps"], bcu_version="6.3.0.0",
-                                        console_path="x")
+                                       console_path="x")
         idx.save(os.path.join(env[STATE_ENV], "index.json"))
-        target = next(a for a in scan["apps"] if a.is_uninstallable and a.display_name.isascii())
+        target = next(a for a in scan["apps"]
+                      if a.is_uninstallable and a.display_name.isascii())
+
         result = self._run(
             ["--json", "uninstall", target.display_name, "--apply"], env, check=False
         )
-        # Either it refuses (no elevation / no confirm) or it runs the dry-run
-        # path; what must never happen is a silent irreversible run.
+        assert result.returncode != 0, (
+            "`--apply` without `--confirm` must not succeed"
+        )
         payload = json.loads(result.stdout)
-        if result.returncode == 0:
-            assert payload.get("destructive") is False
-        else:
-            assert "confirm" in payload.get("error", "").lower() or \
-                   "elevat" in payload.get("error", "").lower() or \
-                   "admin" in payload.get("error", "").lower()
+        message = payload.get("error", "").lower()
+        assert "confirm" in message, (
+            f"the refusal must mention --confirm, got: {payload!r}"
+        )
+        # A refusal must mean BCU never ran: an argv list is only populated once
+        # the plan is accepted.
+        assert not payload.get("argv"), (
+            f"BCU must not have been invoked for a refused plan: {payload!r}"
+        )
+
+    def test_apply_with_confirm_passes_the_gate(self, env, tmp_path, scan):
+        """Positive control: the safety gate must not be a wall.
+
+        This still does not uninstall anything -- it points BCU at a list whose
+        target is chosen and then immediately dry-run, so what is asserted is
+        that the refusal in the previous test is specifically about --confirm.
+        """
+        idx = index_mod.Index.from_apps(scan["apps"], bcu_version="6.3.0.0",
+                                       console_path="x")
+        idx.save(os.path.join(env[STATE_ENV], "index.json"))
+        # an app BCU reports as NOT uninstallable: the planner refuses for a
+        # different, checkable reason, without ever offering to remove anything
+        not_removable = next((a for a in scan["apps"] if not a.is_uninstallable), None)
+        if not_removable is None:
+            pytest.skip("every app on this machine reports a usable uninstaller")
+        result = self._run(
+            ["--json", "uninstall", not_removable.display_name, "--apply", "--confirm"],
+            env, check=False,
+        )
+        payload = json.loads(result.stdout)
+        assert result.returncode != 0
+        assert "no selected application reports a usable uninstall command" in \
+            payload.get("error", ""), payload

@@ -515,18 +515,43 @@ class TestPlan:
         assert p.mode == "dry-run"
         assert "/N" in p.argv
 
-    def test_apply_mode_requires_explicit_mode(self, apps):
+    def test_apply_without_confirm_is_refused(self, apps):
+        """The exact combination that shipped broken.
+
+        `--apply` alone used to run a real uninstall: the guard only fired for
+        `/U`. The README promised `--apply --confirm`, so the code was wrong, not
+        the documentation. This test covers the bare `apply` case directly —
+        previously nothing did, which is why the defect survived 147 green tests.
+        """
         selection = select.select_apps(apps, "Google Chrome")
         p = plan.build_plan(selection, mode="apply")
+        assert p.refused is True
+        assert "confirm" in p.reason.lower()
+        assert p.argv == [], "a refused plan must carry no command to run"
+        assert p.will_run is False
+
+    def test_apply_with_confirm_is_accepted(self, apps):
+        """Positive control: the gate must be a gate, not a wall."""
+        selection = select.select_apps(apps, "Google Chrome")
+        p = plan.build_plan(selection, mode="apply", confirmed=True)
+        assert p.refused is False
         assert p.mode == "apply"
         assert "/N" not in p.argv
+        assert p.destructive is True
 
-    def test_apply_mode_without_confirm_is_refused(self, apps):
-        """B6-adjacent safety: /U is irreversible, so it cannot be implied."""
+    def test_unattended_apply_without_confirm_is_refused(self, apps):
         selection = select.select_apps(apps, "Google Chrome")
         p = plan.build_plan(selection, mode="apply", unattended=True)
         assert p.refused is True
-        assert "confirm" in p.reason.lower() or "unattended" in p.reason.lower()
+        assert "confirm" in p.reason.lower()
+
+    def test_dry_run_never_needs_confirm(self, apps):
+        """Confirm is about irreversibility; a dry run is not irreversible."""
+        selection = select.select_apps(apps, "Google Chrome")
+        for kwargs in ({}, {"unattended": True}, {"quiet": True}):
+            p = plan.build_plan(selection, mode="dry-run", **kwargs)
+            assert p.refused is False, kwargs
+            assert "/N" in p.argv
 
     def test_unattended_allowed_when_explicitly_confirmed(self, apps):
         selection = select.select_apps(apps, "Google Chrome")
