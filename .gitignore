@@ -19,9 +19,13 @@ venv/
 .coverage
 htmlcov/
 
-# Local CLI state written during runs
+# Local CLI state written during runs.
+# `.bcul` lists are generated output, but the test fixtures include one, and a
+# blanket `*.bcul` silently excluded it — so a fresh clone was missing a file its
+# test suite reads. Exclude the pattern, then re-include the fixture directory.
 .bcu-cli/
 *.bcul
+!src/cli_anything/bcu/tests/fixtures/*.bcul
 
 # Generated reports
 apps.csv
@@ -36,10 +40,12 @@ Thumbs.db
 desktop.ini
 .DS_Store
 
-# Local reports and inventories produced while using the CLI — user data, not source
-应用清单*.csv
-installed-by-size.csv
-*_result.json
-_*.log
-_*.ps1
-_*.py
+# Local reports and inventories produced while using the CLI — user data, not source.
+# Scope the scratch-script patterns so they cannot reach into package directories:
+# a bare `_*.py` also swallows any future `__something__.py` module.
+/应用清单*.csv
+/installed-by-size.csv
+/*_result.json
+/_*.log
+/_*.ps1
+/_*.py
