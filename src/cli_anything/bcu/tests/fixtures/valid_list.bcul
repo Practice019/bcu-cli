@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UninstallList xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Enabled>true</Enabled>
+  <Filters>
+    <Filter>
+      <Enabled>true</Enabled>
+      <Exclude>false</Exclude>
+      <Name>fixture</Name>
+      <ComparisonEntries>
+        <FilterCondition>
+          <InvertResults>false</InvertResults>
+          <FilterText>Acme Suite</FilterText>
+          <ComparisonMethod>Contains</ComparisonMethod>
+        </FilterCondition>
+      </ComparisonEntries>
+    </Filter>
+  </Filters>
+</UninstallList>
