@@ -299,9 +299,37 @@ def query():
 @with_globals
 @handle_error
 def query_summary():
-    """Overview of the saved scan."""
+    """Overview of the saved scan, including what the numbers can and cannot mean.
+
+    The trust block is not decoration: BCU's size field is a self-reported
+    registry value (see docs/BCU-FIELDS.md §9), and its orphan flag means
+    "no registry record", not "leftover entry". Reporting either without the
+    caveat is how a wrong answer gets delivered.
+    """
+    from cli_anything.bcu.core import trust
+
     idx = _load_index()
-    output(idx.summary(), f"{idx.count:,} applications indexed")
+    payload = {**idx.summary(), "trust": trust.summarize_for_report(idx.apps)}
+    if _state["json"]:
+        output(payload)
+        return
+    click.echo(f"{idx.count:,} applications indexed")
+    click.echo(f"  uninstallable : {idx.uninstallable_count:,}")
+    click.echo(f"  silent-capable: {idx.quiet_capable_count:,}")
+    click.echo(f"  BCU size sum  : {idx.total_size_kb / 1024 / 1024:.1f} GB  "
+               f"(self-reported, NOT measured)")
+    t = payload["trust"]
+    click.echo(f"  size coverage : {t['size_reliability']['coverage_pct']}% of entries "
+               f"({t['size_reliability']['entries_without_size']} have no value)")
+    if t["duplicate_locations"]:
+        click.echo(f"  ⚠ {len(t['duplicate_locations'])} directories are claimed by "
+                   f"more than one entry — totalling double counts them")
+    click.echo(f"  deduplicated  : {t['deduplicated_total_kb'] / 1024 / 1024:.1f} GB "
+               f"(still self-reported)")
+    click.echo(f"  orphan flag   : {t['orphan_flag_count']} "
+               f"— means 'no registry record', not 'leftover entry'")
+    click.echo(f"  truly dead    : {t['truly_dead_count']} "
+               f"(has a registry record BUT the files are gone)")
 
 
 @query.command("list")
@@ -381,6 +409,51 @@ def query_orphaned():
     apps = [a for a in _load_index().apps if a.is_orphaned]
     _render(apps, f"{len(apps)} orphaned entr{'y' if len(apps) == 1 else 'ies'}")
 
+
+@query.command("dead")
+@with_globals
+@handle_error
+def query_dead():
+    """Genuinely dead entries: a registry record exists but the files are gone.
+
+    This is the correct definition, and it is NOT BCU's `IsOrphaned` flag.
+    `IsOrphaned` marks portable software found by directory scan — those have
+    files and no registry record, the exact opposite. Removing them frees
+    nothing and would delete live directories.
+    """
+    from cli_anything.bcu.core import trust
+
+    items = trust.truly_dead_entries(_load_index().apps)
+    _render(items, f"{len(items)} dead entr{'y' if len(items) == 1 else 'ies'} "
+                   f"(registry record present, files gone)")
+
+
+@query.command("duplicates")
+@with_globals
+@handle_error
+def query_duplicates():
+    """Directories claimed by more than one registry entry.
+
+    Totalling sizes without this double counts whatever is shared; one machine
+    reported 88 GB for a 44 GB directory because two entries named it.
+    """
+    from cli_anything.bcu.core import trust
+
+    idx = _load_index()
+    dupes = trust.duplicate_locations(idx.apps)
+    payload = {
+        "count": len(dupes),
+        "directories": {loc: names for loc, names in dupes.items()},
+        "note": "each shared directory is counted once per entry when summing sizes",
+    }
+    if _state["json"]:
+        output(payload)
+        return
+    click.echo(f"{len(dupes)} directories claimed by multiple entries")
+    for loc, names in list(dupes.items())[:25]:
+        click.echo(f"  {loc}")
+        for n in names:
+            click.echo(f"      {n}")
 
 @query.command("top")
 @click.option("--count", "-n", type=int, default=20, show_default=True)

@@ -106,8 +106,8 @@ Useful when you want BCU's own GUI to review the list first.
 | `query summary` | no | Index overview |
 | `query list` | no | List applications (sort, filter, formats) |
 | `query show <name>` | no | Detail for one application |
-| `query orphaned` | no | Registry entries whose files are gone |
-| `query top` | no | Largest applications by BCU's size estimate |
+| `query dead` | no | **Registry record present but files gone — the real cleanup list** |
+| `query duplicates` | no | Directories claimed by more than one entry |`n| `query top` | no | Largest applications (self-reported sizes) |
 | `uninstall <name>` | **yes** | Dry-run by default; `--apply --confirm` to act |
 | `report -o <file>` | no | Write csv/json/markdown/html/table |
 | `export -o <file>` | **yes** | BCU's own export |
@@ -115,6 +115,34 @@ Useful when you want BCU's own GUI to review the list first.
 
 Global options (`--json`, `--console`, `--index-file`) work **before or after** the
 verb: `--json info` and `info --json` are equivalent.
+
+## Trusting the numbers (read this before acting on a size)
+
+BCU's fields are useful but some are **self-reported and misleading**. Every
+claim here was measured; see [`docs/BCU-FIELDS.md`](docs/BCU-FIELDS.md).
+
+| Field | What it really is |
+|---|---|
+| `EstimatedSizeKb` | the **installer's self-reported registry value**, not a disk measurement. Absent for ~15% of entries, wrong in *both* directions (Edge 2.4x too large; one app 13.9x too small), and counted once per registry entry so two entries naming one directory double count it. Summing it overstated a machine's disk use by 37%. |
+| `IsOrphaned` | **not** a leftover registry entry. It marks software found by *directory scan* with no registry record — portable/unzipped installs whose files are present. BCU removes them by deleting the directory. Acting on this flag deletes live software and frees nothing. |
+| `UninstallerLocation` | points at **BCU's own helper directory** for entries BCU removes itself, not at the application. |
+
+The CLI reports these caveats instead of hiding them:
+
+```bash
+bcu-cli query summary      # size coverage, duplicate directories, orphan meaning, dead count
+bcu-cli query duplicates   # directories claimed by more than one entry
+bcu-cli query dead         # registry record present BUT files gone  <- the real cleanup list
+```
+
+`query dead` is the safe cleanup list: it uses "registry record **and** files
+gone", which is the opposite test from `IsOrphaned`. Expect it to be small — on a
+real machine it found 8 entries, several of them programs uninstalled minutes
+earlier.
+
+**For a real disk number, measure the directory** rather than summing BCU's
+field. The companion project
+[wiztree-cli](https://github.com/Practice019/wiztree-cli) does exactly that.
 
 ## Safety model
 
@@ -190,7 +218,7 @@ real and the safety refusals are unit-tested. See TEST.md §1.3.
 
 ## Documentation
 
-- [`docs/BCU.md`](docs/BCU.md) — measured reconnaissance: exact switches, timings,
+- [`docs/BCU-FIELDS.md`](docs/BCU-FIELDS.md) — **field semantics and reliability** (`EstimatedSizeKb`, `IsOrphaned`, `UninstallerKind`)`n- [`docs/BCU.md`](docs/BCU.md) — measured reconnaissance: exact switches, timings,
   the JSON schema of all 28 fields, and the three traps
 - [`src/cli_anything/bcu/tests/TEST.md`](src/cli_anything/bcu/tests/TEST.md) — test plan and results
 

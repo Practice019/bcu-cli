@@ -65,12 +65,15 @@ required = {
     "core/select.py": "src/cli_anything/bcu/core/select.py",
     "core/plan.py": "src/cli_anything/bcu/core/plan.py",
     "core/report.py": "src/cli_anything/bcu/core/report.py",
+    "core/trust.py (field reliability)": "src/cli_anything/bcu/core/trust.py",
     "utils/bcu_backend.py": "src/cli_anything/bcu/utils/bcu_backend.py",
     "skills/SKILL.md": "src/cli_anything/bcu/skills/SKILL.md",
     "tests/TEST.md": "src/cli_anything/bcu/tests/TEST.md",
     "tests/test_core.py": "src/cli_anything/bcu/tests/test_core.py",
     "tests/test_cli_bindings.py": "src/cli_anything/bcu/tests/test_cli_bindings.py",
     "tests/test_full_e2e.py": "src/cli_anything/bcu/tests/test_full_e2e.py",
+    "tests/test_trust.py": "src/cli_anything/bcu/tests/test_trust.py",
+    "docs/BCU-FIELDS.md (field semantics)": "docs/BCU-FIELDS.md",
     ".gitignore": ".gitignore",
     ".gitattributes": ".gitattributes",
 }
@@ -100,6 +103,7 @@ proj_ok = all(fn in read(exists(f"src/cli_anything/bcu/{rel}"))
                   ("core/plan.py", "def build_plan("),
                   ("core/select.py", "def select_apps("),
                   ("core/report.py", "def render("),
+                  ("core/trust.py", "def truly_dead_entries("),
                   ("core/index.py", "def save("),
               ))
 check("4-Core", "core modules expose their documented entry points", proj_ok)
