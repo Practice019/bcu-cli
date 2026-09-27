@@ -1,0 +1,29 @@
+# Line-ending and diff policy.
+#
+# Order matters: the LAST matching rule wins. The specific exclusion for the
+# UTF-16 fixture therefore has to come AFTER the *.txt rule that would otherwise
+# treat it as text.
+
+* text=auto eol=lf
+
+*.py    text eol=lf
+*.md    text eol=lf
+*.toml  text eol=lf
+*.yml   text eol=lf
+*.json  text eol=lf
+*.bcul  text eol=lf
+*.txt   text eol=lf
+
+# Captured BCU console output. list_plain_utf16.txt is genuine UTF-16LE data
+# (42 00 43 00 ... = "BCU-c"), so it must be kept out of text handling entirely:
+# newline normalisation would corrupt it and break the decoder test that exists
+# precisely to cover UTF-16. -text also implies -diff/-merge.
+src/cli_anything/bcu/tests/fixtures/list_plain_utf16.txt  -text -diff -merge
+
+# Binary assets
+*.png   binary
+*.jpg   binary
+*.ico   binary
+*.exe   binary
+*.dll   binary
+*.zip   binary

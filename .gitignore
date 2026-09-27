@@ -1,0 +1,37 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.so
+
+# Packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+wheelhouse/
+
+# Virtual environments
+venv/
+.venv/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local CLI state written during runs
+.bcu-cli/
+*.bcul
+
+# Generated reports
+apps.csv
+apps.json
+apps.xml
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+desktop.ini
+.DS_Store
