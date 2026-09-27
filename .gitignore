@@ -35,3 +35,11 @@ apps.xml
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# Local reports and inventories produced while using the CLI — user data, not source
+应用清单*.csv
+installed-by-size.csv
+*_result.json
+_*.log
+_*.ps1
+_*.py
